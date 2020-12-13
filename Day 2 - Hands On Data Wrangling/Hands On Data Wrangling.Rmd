@@ -1,0 +1,500 @@
+---
+title: 'Day 2 : Hands On Data Wrangling'
+author: "Fahmi Rizaldi"
+date: "11/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+Pada hari ini, kita akan mencoba melakukan Data Wrangling menggunakan xxx
+
+Tujuan dari pelatihan ini adalah agar peserta dapat melakukan pengolahan data-data untuk keperluan visualisasi dan reporting
+
+==============
+
+Data dan Contoh Laporan yang akan kita gunakan tersedia pada directory / file yang sudah dibagikan
+
+- Data : "xxx"
+
+- Laporan : "xxx"
+
+Pada pelatihan kali ini kita akan mencoba untuk mereplicate data yang akan digunakan pada Draft Bulanan tersebut
+
+==============
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(readxl)
+library(scales)
+library(lubridate)
+```
+
+# Tugas 1 -> Membuat 1 data.frame yang memuat seluruh data selama 2020
+
+Data yang kita akan gunakan memiliki sheet yang berisi data masing-masing bulan. Selain itu, di tiap2 sheet, 2 baris awal terdapat judul tabel dan nama kolom ada dibaris 3 hingga 5
+
+Reference: `Menyimpan Seluruh Sheet Secara Bersamaan`, `rbind()`, dan `Memilih Data`
+
+Apa saja yang harus kita lakukan?
+
+-   List seluruh nama sheet yang ada pada data excel dan buang sheet yang tidak dipakai
+
+Kemudian dalam program looping per list_sheet
+
+-   Membuka data excel per sheet (bulan) dengan melewatkan awal hingga data pertama data hari pertama bulan tersebut dan membuang baris yang tidak kita gunakan
+
+-   Menggabungkan data per bulan menjadi 1 tabel besar data 2020
+
+
+```{r}
+nama_file <- "xxx"
+
+# List Nama Sheet yang ada
+list_sheet <- excel_sheets(nama_file)
+
+# Buang Sheet yang tidak dipakai, yaitu Sheet `Recap`. Karena ini data vektor, kita hanya bisa memakai indexing
+list_sheet <- list_sheet[-1]
+
+# Menyiapkan data.frame kosong untuk menyimpan seluruh data pada program looping
+data_tahun_2020 <- data.frame(NULL) 
+
+# Program Looping
+for(nama_sheet in list_sheet) {
+  
+  # Membuka excel berdasarkan nama sheetnya dan melewatkan baris agar data pertama adalah data hari pertama di sheet tersebut
+  data_sheet <- read_excel(nama_file, nama_sheet, skip = 4)
+  
+  # Membuang baris terakhir / baris `jumlah`
+  data_sheet <- data_sheet[-nrow(data_sheet),]
+  
+  # Menggabungkan data_tahun_2020 dengan data_sheet
+  data_tahun_2020 <- rbind(data_tahun_2020, data_sheet)
+  
+}
+```
+
+# Tugas 2 -> Membersihan data_tahun_2020
+
+Apabila kita lihat, data.frame data_tahun_2020 masih harus diperbaiki, apa saja itu?
+
+-   Nama Kolom yang tidak sesuai dengan di excel
+
+-   Data tanggal yang "aneh" dan berjenis character
+
+-   Masih terdapat data NA
+
+## Ganti nama kolom
+
+Reference: `rename()`
+
+Pada data.frame data_tahun_2020, nama kolom tidak sesuai dengan nama dengan excel karena kita pada `read_excel()` sebelumnya kita menggunakan skip yang mana baris2 yang berisi nama kolom terlewati.
+
+Dengan meggunakan `rename()` kita dapat mengubah seluruh nama kolom yang "aneh" tersebut
+
+```{r}
+data_tahun_2020 <-
+  data_tahun_2020 %>% 
+  rename("TANGGAL" = ...1,
+         "HARI" = ...2,
+         "PULAU MERAH (TP)" = ...3,
+         "PANCER (TP)" = ...4,
+         "TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)" = ...5,
+         "PULAU MERAH (P)" = ...6,
+         "PANCER (P)" = ...7,
+         "TPI PANCER (P)" = ...8,
+         "PASAR DESA (P)" = ...9,
+         "TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN" = ...10,
+         "TOTAL SAMPAH MASUK SEKOLA" = ...11,
+         "ORGANIK" = ...12,
+         "RESIDU (HASIL PEMILAHAN)" = ...29,
+         "RESIDU (TOTAL)" = ...30)
+```
+
+## Ubah Data TANGGAL
+
+reference: `as.Date()`
+
+Tahapan :
+
+-   Ubah datanya menjadi numeric terlebih dahulu
+
+-   Setelah itu, ubah menjadi date dengan argumen `origin = "1899-12-30"`   
+
+```{r}
+data_tahun_2020$TANGGAL <- 
+  data_tahun_2020$TANGGAL %>% 
+  as.numeric() %>% 
+  as.Date(origin = "1899-12-30")
+```
+
+## Ganti NA
+
+Karena NA pada data ini berarti tidak ada sampah masuk, maka data NA akan diganti menjadi 0
+
+reference: `is.na()`
+
+```{r}
+data_tahun_2020[is.na(data_tahun_2020)] <- 0
+```
+
+# Tugas 3 -> Memilih data pada bulan yang kita inginkan dan mengelompokkan secara mingguan
+
+Pada hands-on kali ini, kita akan memilih data bulan 'Oktober' untuk kita olah lebih lanjut selain itu kita akan mengelompokkan data secara mingguan, langkah2nya :
+
+-   Membuat 1 kolom `BULAN` yang berisi nama bulan dan 1 kolom `MINGGU KE` yang berisi Minggu pada Bulan Tersebut
+
+-   Filter bulan Oktober dari kolom `BULAN` tersebut
+
+-   Jumlahkan data secara mingguan
+
+Reference: `mutate()`, `filter()`, `select()`, `month`
+
+## Membuat kolom `BULAN` dan `MINGGU KE`
+
+```{r}
+data_tahun_2020 <-
+  data_tahun_2020 %>% 
+  mutate("BULAN" = month(TANGGAL, label = TRUE, abbr = TRUE), # mengambil nama bulan dari tanggalnya dan hanya mengambil singkatannya
+         "MINGGU KE" = case_when(
+            day(TANGGAL) <= 7 ~ 1,
+            day(TANGGAL) > 7 & day(TANGGAL) <= 14 ~ 2,
+            day(TANGGAL) > 14 & day(TANGGAL) <= 21 ~ 3,
+            day(TANGGAL) > 21 & day(TANGGAL) <= 28 ~ 4,
+            day(TANGGAL) > 28 ~ 5
+          )
+  ) %>% # Untuk mengambil "MINGGU KE" pada bulan tersebut
+  select(TANGGAL, BULAN, `MINGGU KE`, everything()) # Untuk menaruh kolom BULAN setelah TANGGAL
+```
+
+Note,
+
+Fungsi `everything()` adalah fungsi untuk memilih seluruh data / kolom selain yang sudah dipilih
+
+## Filter Bulan Oktober
+
+Bulan yang akan kita pilih ada "Oct"
+
+```{r}
+Bulan <- "Oct"
+
+data_bulanan <-
+  data_tahun_2020 %>% 
+  filter(BULAN == Bulan)
+```
+
+## Jumlah Data secara Mingguan
+
+Kemudian, kita akan melakukan summarise atau pengelompokkan berdasarkan `BULAN` lalu `MINGGU KE`. 
+
+Data pada minggu tersebut akan kita summarise_at() dengan fungsi sum()
+
+```{r}
+data_bulanan_weekly <-
+  data_bulanan %>% 
+  group_by(BULAN, `MINGGU KE`) %>% 
+  summarise_at(vars(-c(TANGGAL, HARI)), funs(sum(.))) %>% # memiliki prinsip yang sama dengan mutate_at
+  ungroup()
+```
+
+# Tugas 4 -> Membuat Data untuk Input Pie Chart untuk Kategori Pemilahan, Asal Sampah, dan Jenis Sampah Pemilahan
+
+Data untuk Input Pie Chart harus berbentuk `long / panjang ke bawah` dan memiliki tambahan kolom `Proporsi` dan `ypos`
+
+Akan dibuat 3 data frame dengan variabel berbeda:
+
+1.    kategori pemilahan = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN` dan `TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`
+2.    asal sampah pemilahan = `PANCER (P)`, `PULAU MERAH (P)`, `TPI PANCER (P)`, `PASAR DESA (P)`
+3.    jenis sampah pemilahan = `ORGANIK`, `TOTAL ANORGANIK DAUR ULANG`, `RESIDU (HASIL PEMILAHAN)`
+
+Tahapan pada masing2 data.frame :
+
+-   Melakukan summarise() dengan fungsi sum() pada variabel2 yang akan dibuat. Kenapa? karena data yang kita miliki saat ini masih dalam mingguan belum dalam bulanan
+
+-   Ubah data dari menjadi long menggunakan `pivot_longer()` dengan argumen `cols = everything()` dimana fungsi everything akan memilih seluruh kolom yang ada pada data input
+
+-   Lakukan filter dengan nilai Total_Masuk tidak sama dengan 0
+
+-   tambah kolom Proporsi dengan rumus `x/sum(x)*100` dengan x adalah variabel nilai Total_Masuk
+
+-   Bulatkan nilai Proporsi menajadi 1 angka dibelakang koma
+
+```{r}
+data_bulanan_weekly %>% 
+  summarise("Masuk" = sum(`TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`),
+            "Tidak Masuk" = sum(`TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`)) %>% 
+  pivot_longer(cols = everything(), names_to = "Kategori", values_to = "Total_Masuk") %>% 
+  filter(Total_Masuk != 0) %>% 
+  arrange(desc(Kategori)) %>% 
+  mutate(
+    Proporsi = Total_Masuk/sum(Total_Masuk)*100,
+    ypos = cumsum(Proporsi) - 0.5*Proporsi
+  ) %>% 
+  mutate(
+    Proporsi = round(Proporsi, 1)
+  )
+```
+
+Jika kita perhatikan, dari baris pivot_longer() kebawah, akan tetap sama untuk semua variabel, baik dari kategori_pemilahan, asal sampah pemilahan, dan jenis sampah pemilahan. Kita hanya perlu mengubah argumen pada fungsi summarise() saja
+
+Maka dari itu, kita akan membuat fungsi untuk pivot agar bisa dipakai ke 3 variabel tersebut
+
+### Membuat fungsi untuk Tahapan ke 2 hingga 5. Fungsi ini dibuat karena ke 3 dataframe tersebut akan menggunakan fungsi pivot yang sama
+
+```{r}
+pivot_piechart <- function(data){
+  data %>% 
+    pivot_longer(cols = everything(), names_to = "Kategori", values_to = "Total_Masuk") %>% 
+    filter(Total_Masuk != 0) %>% 
+    arrange(desc(Kategori)) %>% 
+    mutate(
+      Proporsi = Total_Masuk/sum(Total_Masuk)*100,
+      ypos = cumsum(Proporsi) - 0.5*Proporsi
+    ) %>% 
+    mutate(
+      Proporsi = round(Proporsi, 1)
+    )
+}
+```
+
+## Tahapan 1 + Fungsi Pivot
+
+```{r}
+data_piechart_kategori_pemilahan <-
+data_bulanan_weekly %>% 
+  summarise("Masuk" = sum(`TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`),
+            "Tidak Masuk" = sum(`TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`)) %>% 
+  pivot_piechart()
+  
+
+data_piechart_asal_sampah_pemilahan <-
+data_bulanan_weekly %>% 
+  summarise("Pancer" = sum(`PANCER (P)`),
+            "Pulau Merah" = sum(`PULAU MERAH (P)`),
+            "TPI Pancer" = sum(`TPI PANCER (P)`),
+            "Pasar Desa" = sum(`PASAR DESA (P)`)) %>% 
+  pivot_piechart()
+
+data_piechart_jenis_sampah_pemilahan <-
+data_bulanan_weekly %>% 
+  summarise("Organik" = sum(ORGANIK),
+            "Anorganik" = sum(`TOTAL ANORGANIK DAUR ULANG`),
+            "Residu" = sum(`RESIDU (HASIL PEMILAHAN)`)) %>% 
+  pivot_piechart()
+```
+
+# Tugas 5 -> Membuat Data Perubahan Week over Week untuk `TOTAL SAMPAH MASUK SEKOLA`, `ORGANIK`, `TOTAL ANORGANIK DAUR ULANG`, dan `RESIDU (HASIL PEMILAHAN)` (lihat slide Sampah Organik sebagai Contoh)
+
+Data perubahan Week over Week (wow) digunakan untuk melihat perubahan jumlah sampah masuk setiap minggunya
+
+Tahapan :
+
+-   Pilih kolom 'MINGGU KE` dan kolom yang ingin dibuat wow
+
+-   Tambah Kolom wow untuk masing2 variabel, rumus wow adalah `(data_minggu_ini - data_minggu_sebelumnya) / data_minggu_sebelumnya`. Untuk memilih data_minggu_sebelumnya dapat menggunakan fungsi `lag(nama_variabel)`
+
+-   Buat masing2 Kolom wow dalam bentuk persentase dan bulatkan menjadi 1 decimal di belakang koma dengan fungsi `round(nama_variabel, jumlah_decimal)`
+
+```{r}
+data_bulanan_weekly_wow <-
+  data_bulanan_weekly %>% 
+  select(`MINGGU KE`, `TOTAL SAMPAH MASUK SEKOLA`, ORGANIK, `TOTAL ANORGANIK DAUR ULANG`, `RESIDU (HASIL PEMILAHAN)`) %>% 
+  mutate(
+    wow_total = (`TOTAL SAMPAH MASUK SEKOLA` - lag(`TOTAL SAMPAH MASUK SEKOLA`))/lag(`TOTAL SAMPAH MASUK SEKOLA`),
+    wow_organik = (ORGANIK - lag(ORGANIK))/lag(ORGANIK),
+    wow_anorganik = (`TOTAL ANORGANIK DAUR ULANG` - lag(`TOTAL ANORGANIK DAUR ULANG`))/lag(`TOTAL ANORGANIK DAUR ULANG`),
+    wow_residu = (`RESIDU (HASIL PEMILAHAN)` - lag(`RESIDU (HASIL PEMILAHAN)`))/lag(`RESIDU (HASIL PEMILAHAN)`)
+  ) %>% 
+  mutate(
+    wow_total = round(wow_total*100, 1),
+    wow_organik = round(wow_organik*100, 1),
+    wow_anorganik = round(wow_anorganik*100, 1),
+    wow_residu = round(wow_residu*100, 1)
+  )
+```
+
+# Tugas 6 -> Membuat Data Input untuk Proporsi Pemilahan atau Tidak dan Jenis Sampahnya
+
+Dari data_bulanan_weekly, kita ingin melihat proporsi tiap minggunya dari Sampah yang masuk ke pemilahan dan tidak DAN Jenis Sampah yang masuk ke proses pengolahan (Organik, Anorganik, Residu)
+
+Tahapannya sama seperti Tugas 4, namun tanpa proses `summarise()` karena data sudah dalam mingguan. Kita hanya akan mengganti nama2 kolom agar sesuai dengan contoh yang ada
+
+Tahapan:
+
+- Pilih kolom minggu ke dan kolom yang ingin dicari proporsinya
+
+- Ubah nama kolom agar lebih sesuai
+
+- lakukan pivot tanpa kolom `MINGGU KE`
+
+- group_by berdasarkan kolom `MINGGU KE`
+
+- Buat proporsinya dan bulatkan ke 1 decimal dibelakang koma
+
+```{r}
+pivot_proporsi <- function(data){
+  data %>% 
+    pivot_longer(
+      !`MINGGU KE`,
+      names_to = "Kategori",
+      values_to = "Jumlah_Masuk"
+    ) %>% 
+    group_by(`MINGGU KE`) %>% 
+    mutate(
+      Proporsi = Jumlah_Masuk / sum(Jumlah_Masuk) * 100
+    ) %>% 
+    mutate(
+      Proporsi = round(Proporsi, 1)
+    )
+}
+
+data_proporsi_pemilahan_weekly <-
+data_bulanan_weekly %>% 
+  select(
+    `MINGGU KE`,
+    `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`,
+    `TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`
+  ) %>% 
+  rename(
+    "Dengan Pemilahan" = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`,
+    "Tanpa Pemilahan" = `TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`
+  ) %>% 
+  pivot_proporsi()
+
+
+# Tambahan untuk keperluan visualisasi
+data_proporsi_pemilahan_weekly$Kategori <- 
+  factor(data_proporsi_pemilahan_weekly$Kategori, levels = c("Tanpa Pemilahan","Dengan Pemilahan"))
+
+data_proporsi_jenis_weekly <-
+data_bulanan_weekly %>% 
+  select(
+    `MINGGU KE`,
+    ORGANIK,
+    `TOTAL ANORGANIK DAUR ULANG`,
+    `RESIDU (HASIL PEMILAHAN)`
+  ) %>% 
+  rename(
+    "Organik" = ORGANIK,
+    "Anorganik" = `TOTAL ANORGANIK DAUR ULANG`,
+    "Residu" = `RESIDU (HASIL PEMILAHAN)`
+  ) %>% 
+  pivot_proporsi()
+
+# Tambahan untuk keperluan visualisasi
+data_proporsi_jenis_weekly$Kategori <- 
+  factor(data_proporsi_jenis_weekly$Kategori, levels = c("Residu","Anorganik","Organik"))
+```
+
+# Tugas 7 -> Membuat Table Data Anorganik
+
+Tahapan:
+
+-   Pilih kolom MINGGU KE, dan seluruh komponen Anorganik
+
+-   Lakukan Transpose untuk mengubah nama kolom jadi baris dan baris hingga nama kolom
+
+-   Ubah nama kolom `MINGGU KE` menjadi Kategori
+
+-   Lakukan pembulatan kebawah menggunakan `mutate_at()` dengan fungsi `floor()` didalamnya
+
+-   Tambah Kolom `Total Masuk` yang merupakan penjumlahan dari MINGGU ke 1 hingga 5. Gunakan `rowSums()`
+
+-   Buat Proporsi dari komponen2 anorganik tersebut seperti pada tugas2 sebelumnya
+
+```{r}
+data_anorganik <-
+data_bulanan_weekly %>% 
+  select(
+    `MINGGU KE`,
+    `1. AQUA GELAS`, 
+    `2. PLASTIK/ KRESEK WARNA`,
+    `3. PLASTIK SACHET`,
+    `4. PLASTIK MIKA BENING`,
+    `5. PIPET`,
+    `6. REFILL`,
+    `7. BOTOL`,
+    `8. DUPLEK`,
+    `9. KARDUS/ KERTAS`,
+    `10. PLASTIK GELAS WARNA`,
+    `11. KACA`,
+    `12. LOGAM`,
+    `13. EMBERAN`,
+    `14. TUTUP BOTOL`,
+    `15. TETRAPACK`,
+  ) %>% 
+  data.table::transpose(keep.names = "rn") %>% 
+  janitor::row_to_names(row_number = 1) %>% 
+  rename(
+    "Kategori" = `MINGGU KE`
+  ) %>% 
+  mutate_at(vars(2:6), funs(floor(.))) %>% 
+  mutate(
+    "Total Masuk" = rowSums(.[2:6]),
+    Proporsi = `Total Masuk`/sum(`Total Masuk`)*100
+  ) %>% 
+  mutate(
+    Proporsi = round(Proporsi, 1)
+  )
+
+data_anorganik[data_anorganik == 0] <- NA
+```
+
+# Tugas 8 -> Membuat Tabel Summary 2020
+
+Kita akan membuat Tabel yang merupakan summary dari tahun 2020
+
+Tahapannya hampir sama seperti tugas 7, dengan perbedaan:
+
+-   group_bynya dalam bulan bukan mingguan
+
+-   Setelah transpose, ubah seluruh kolom menjadi numeric
+
+-   Lalu hanya perlu tambahkan Total Masuk saja yang merupakan penjumlahan seluruh kolom kecuali kolom awal
+
+```{r}
+data_summary_2020 <-
+  data_tahun_2020 %>% 
+    select(
+      BULAN,
+      `TOTAL SAMPAH MASUK SEKOLA`,
+      `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`,
+      `TOTAL SAMPAH TANPA PEMILAHAN (RESIDU)`,
+      `PANCER (P)`,
+      `PULAU MERAH (P)`,
+      ORGANIK,
+      `TOTAL ANORGANIK DAUR ULANG`,
+      `RESIDU (HASIL PEMILAHAN)`
+    ) %>% 
+    group_by(BULAN) %>% 
+    summarise_at(vars(everything()), funs(sum(.))) #Pilih seluruh kolom
+
+index_bulan <- which(data_summary_2020$BULAN == Bulan)
+
+data_summary_2020 <-
+  data_summary_2020[1:index_bulan,] %>% 
+  data.table::transpose(keep.names = "rn") %>% 
+  janitor::row_to_names(row_number = 1)
+
+data_summary_2020[-1] <- sapply(data_summary_2020[-1],as.numeric) #digunakan untuk mengubah seluruh kolom kecuali bulan menjadi numeric
+
+data_summary_2020 <-
+  data_summary_2020 %>% 
+  mutate(
+    "Total Masuk 2020" = rowSums(.[-1])
+  )
+```
+
+```{r}
+# Ganti ke working directory
+nama_rda <- paste("xxx",Bulan,".rda", sep = "")
+
+save(list = ls(pattern = "data_"), file = nama_rda)
+```
+
+

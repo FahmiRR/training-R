@@ -1,0 +1,779 @@
+---
+title: "Untitled"
+author: "Fahmi Rizaldi"
+date: "11/15/2020"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(readxl)
+library(scales)
+library(lubridate)
+library(gt)
+```
+
+```{r}
+Bulan <- "Oct"
+
+nama_rda <- paste("cleaned_data_bulan_",Bulan,".rda", sep = "")
+
+load(nama_rda)
+```
+
+# GGPLOT
+
+Dalam visualisasi data menggunakan R, library yang paling sering digunakan adalah ggplot. Library ini memuat fitur2 dasar untuk membuat berbagai visualisasi seperti barchat, linechart dan lainnya
+
+Fungsi yang harus ada dan harus digunakan adalah ggplot()
+
+# ggplot()
+
+Fungsi dari ggplot() adalah membuat 'kanvas' yang kemudian dapat kita isi dengan fitur2 yang kita inginkan. Seperti yang sudah dipelajari sebelumnya, R menjalankan fungsi dari baris paling atas, maka dari itu ggplot harus kita pasang setelah data yang ingin kita visualisasikan. Fungsi-fungsi dibawahnya akan menjadi layer yang menimpa fungsi sebelumnya
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y))
+
+Kita akan mencoba untuk memplot kolom `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN` dari data frame data_bulanan_weekly
+
+Pertama, kita coba pasang gunakan fungsi ggplot() tanpa input apapun selain data.frame data_bulanan_weekly
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot()
+```
+
+Keluar kotak berwarna abu2 tanpa isi apapun. 'Kotak' inilah yang merupakan kanvas untuk kita isi sesuai keinginan kita
+
+# aes()
+
+Sekarang kita akan mencoba mengisi kanvas tersebut dengan axis x dan y dengan memanggil kolom yang ingin kita pakai. Hal tersebut dapat kita lakukan dengan menggunakan fungsi `aes()` didalam fungsi `ggplot()`
+
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y))
+  
+Misal kita ingin memplot axis y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN` dengan axis x =  `MINGGU KE`
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`))
+```
+
+# geom_?()
+
+Nah disini kanvas sudah ada axis x dan y nya. Itulah tampilan default dari ggplot. Tapi dimana 'isi'nya? Kok tidak ada kolom, titik, atau garis dari data yang kita tunjuk?
+
+Ini dikarenakan kita harus menambah satu fungsi yang berfungsi untuk me-assign 'bentuk' visualisasi yang kita inginkan. Untuk melakukan hal tersebut, kita akan menggunakan fungsi `geom_?()` dimana ? nya diisi dengan bentuk yang kita inginkan, misal point, bar, col, dan lain2.
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?()
+
+## +
+
+Nah ada yang berbeda nih dari yang diajarkan kemarin2. Kalau dikode2 sebelumnya kita memakai %>% untuk menghubungkan fungsi, di ggplot kita menggunakan `+` setelah ggplot untuk memanggil fungsi selanjutnya
+
+## geom_point()
+
+Kita akan coba pakai geom_point() terlebih dahulu
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_point()
+```
+
+Sekarang terlihat ada titik-titik data yang posisinya sesuai dengan nilai total sampah pada minggu tersebut. 
+
+## geom_col()
+
+Agar lebih terlihat perbedaannya tiap minggunya, kita mencoba bentuk lain yaitu `geom_col()`
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col()
+```
+
+## Customization of geom_?()
+
+Untuk mempercantik visualisasi, kita dapat mengubah tampilan dari geom yang kita buat. Yang paling sering kita gunakan adalah mengganti warna dan ukuran dari geom.
+
+### Mengganti warna: geom_?(fill = ) / geom_?(colour = )
+
+Dalam mengganti warna, kita dapat menambah argumen `fill =` dalam fungsi `geom_?()`
+
+Kita dapat mengisi argumen fill dengan nama warna atau hex code nya
+
+Cara pemakaian
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?(fill = nama_warna / hex_code)
+
+#### Nama Warna
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "red")
+```
+
+#### Hex Code
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#BA99DD")
+```
+
+Selain nama warna atau hex_code kita, kita juga bisa mengisinya dengan nama kolomnya untuk memberi warna berdasarkan kategori dari variabel dalam kolom tersebut.
+
+Bedanya, fill nama kolom harus ditaruh dalam aes()
+
+#### Berdasarkan Nama Kolom
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(aes(fill = `MINGGU KE`))
+```
+
+Karena tipe variabel adalah `integer`, maka hasilnya adalah warna dalam skala 1 sampai dengan 5, untuk mengubahnya dalam bentuk kategori, kita bisa ganti kelasnya terlebih dahulu menjadi character
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(aes(fill = as.character(`MINGGU KE`)))
+```
+
+#### Ganti Warna secara Manual
+
+Kita bisa memberi warna secara manual dengan membuat terlebih dahulu vektor yang berisi nama kategorinya dan warnanya
+
+```{r}
+isi_warna <- c("1" = "red",
+               "2" = "orange",
+               "3" = "yellow",
+               "4" = "green",
+               "5" = "blue")
+
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(aes(fill = as.character(`MINGGU KE`))) +
+  scale_fill_manual(values = isi_warna)
+```
+
+
+### Mengganti Ukuran: geom_?(width = ) / geom_?(size = )
+
+Tergantung dari `geom_?()`nya, kita dapat mengganti ukuran dari bentuk yang kita pakai. Kita dapat menggunakan argumen `width =` atau `size =` yang kita masukkan kedalam geom
+
+#### width
+
+Contoh dibawah ini, kita mengganti lebar dari kolom. 
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "blue", width = 0.5)
+```
+
+#### size
+
+Contoh size bisa dilihat pada geom_point
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_point(colour = "blue", size = 5)
+```
+
+## Lebih dari 1 geom
+
+Kita dapat memasang lebih dari 1 geom dalam satu visualisasi. Prinsipnya, geom dibawahnya akan menimpa geom sebelumnya
+
+Ini contoh titik diatas garis
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_line(colour = "red", size = 3) +
+  geom_point(colour = "blue", size = 5)
+```
+
+dan ini kebalikannya
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_point(colour = "blue", size = 5) +
+  geom_line(colour = "red", size = 3)
+```
+
+# geom_text()
+
+Selain membuat bentuknya, kita juga dapat menambah label disekitar titik data dengan `geom_text()`
+
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?() +
+  geom_text(aes(label = nama_kolom_label))
+  
+Contoh pemakaian
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`))
+```
+
+Selain angka dari datanya, kita juga memasukkan huruf / angka apapun yang kita inginkan
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = "Isinya"))
+```
+
+## Customization of geom_text()
+
+Hampir sama seperti sebelumnya, kita dapat melakukan kustomisasi textnya
+
+### Ukuran
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), size = 6)
+```
+
+### Posisi
+
+Untuk posisi kita bisa menggunakan input `vjust / hjust` di geom_text V untuk Vertikal, dan H untuk Horizontal.
+
+Contoh menggeser kesamping
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), hjust = -1)
+```
+
+Contoh menggeser keatas
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1)
+```
+
+kalau kita lihat, label di minggu ke-3 sudah keluar dari kanvas yang kita buat karena sudah melewati batas atas y axisnya.
+
+# xlim() dan ylim()
+
+Kita dapat mengganti range axis dengan fungsi `xlim() / ylim()` tergantung axisnya
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?() +
+  xlim/ylim(batas_bawah, batas_atas)
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, max(data_bulanan_weekly$`TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)*1.1)
+```
+
+# Memberi Warna dan Text Berdasarkan Proporsinya
+
+Contoh dibawah ini adalah `BULAN` dengan fill berdasarkan `MINGGU KE`
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = BULAN, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(aes(fill = as.character(`MINGGU KE`)))
+```
+
+## Memberi Text
+
+Contoh dibawah ini memberi text berdasarkan kategorinya
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = BULAN, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(aes(fill = as.character(`MINGGU KE`))) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), position = position_stack())
+```
+
+# hline() dan vline()
+
+Kita bisa menambah garis tambahan sejajar axis x dan y dengan `geom_hline()` dan `geom_vline()`
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?() +
+  geom_hline(yintercept = kordinat_y, linetype = "jenis_garis")
+  
+jenis linetype bisa diliat di ?linetype
+
+Contoh sumbu y
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_point(colour = "blue", size = 5) +
+  geom_line(colour = "red", size = 3) +
+  geom_hline(yintercept = 300)
+```
+
+Contoh sumbu x dengan garis putus-putus
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_point(colour = "blue", size = 5) +
+  geom_line(colour = "red", size = 3) +
+  geom_vline(xintercept = 3, linetype = 5)
+```
+
+# Kustomisasi
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500)
+```
+
+Tampilan dari visualisasi default bisa kita ganti sesuai yang kita inginkan
+
+## labs()
+
+labs() biasa kita gunakan untuk mengganti label baik dari judul maupun axis2
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?() +
+  labs(
+    jenis_label = "isi labelnya",
+    jenis_label_2 = "isi labelnya 2",
+    ...
+  )
+
+Berikut adalah contoh pemakaiannya
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 8000) +
+  labs(
+    title = "Ini Judulnya",
+    subtitle = "Ini Subjudulnya",
+    caption = "Ini Captionnya",
+    x = "Ini Sumbu X",
+    y = "Ini Sumbu Y",
+    tag = "Ini Tag"
+  )
+```
+
+## theme()
+
+Kalau tadi label. sekarang masuk ke bagian temanya
+
+Cara pemakaian:
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?() +
+  theme(
+    jenis_tema/element = isi_tema,
+    jenis_tema/element_2 = isi_tema_2,
+    ...
+  )
+
+Jenis tema/element nya untuk diliat di ?theme
+
+### isi_theme
+
+isi tema ini berbeda beda berdasarkan jenis temanya
+
+#### element_blank()
+
+Digunakan untuk menghilangkan element2 yang kita pilih
+
+Contoh dibawah ini adalah menghilangkan garis sumbu y dan label y
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 8000) +
+  theme(
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank()
+  )
+```
+
+#### element_text()
+
+Untuk mengedit jenis, warna, margin text labelnya
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500) +
+  theme(
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = 10),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 15,
+                                  face = "bold",
+                                  colour = "red"
+                                  )
+  ) +
+  labs(
+    title = "Ini Judulnya"
+  )
+```
+
+#### element_rect()
+
+Untuk mengedit "Kotak2" pada ggplot
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500) +
+  theme(
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 15,
+                                  face = "bold",
+                                  colour = "red"
+                                  ),
+        panel.background = element_rect(fill = "green"),
+        plot.background = element_rect(fill = "yellow")
+  ) +
+  labs(
+    title = "Ini Judulnya"
+  )
+```
+
+## theme_?()
+
+Selain mengedit sendiri, terdapat beberapa tema yang sudah dibuat oleh orang lain
+
+```{r}
+library(ggthemes)
+
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500) +
+  theme_excel()
+```
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500) +
+  theme_fivethirtyeight()
+```
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+  geom_col(fill = "#11b2de", width = 0.75) +
+  geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+  ylim(0, 6500) +
+  theme_classic()
+```
+
+# Menyimpan File
+
+Untuk menyimpan plot yang kita buat bisa menggunakan `ggsave()`
+
+Cara pemakaian:
+nama_plot <-
+nama_data_frame %>% 
+  ggplot(mapping = aes(x = nama_kolom_axis_x, y = nama_kolom_axis_y)) +
+  geom_?()
+  
+ggsave(nama_plot, filename = "nama_file", width = lebar_plot, height = tinggi_plot, units = unit_besaran_width/height)
+
+```{r}
+nama_plot <-
+  data_bulanan_weekly %>% 
+    ggplot(mapping = aes(x = `MINGGU KE`, y = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`)) +
+    geom_col(fill = "#11b2de", width = 0.75) +
+    geom_text(aes(label = `TOTAL SAMPAH AKAN MASUK PROSES PEMILAHAN`), vjust = -1) +
+    ylim(0, 6500) +
+    theme_classic()
+
+ggsave(nama_plot ,filename = "Ini Hasilnya.png", width = 5, height = 5, units = "in")
+```
+
+# GT
+
+Selain visualisasi chart, kita juga bisa "print" dalam bentuk tabel dengan library gt
+
+```{r}
+library(gt)
+```
+
+```{r}
+data_summary_2020 %>% 
+  gt()
+```
+
+dan seperti sebelumnya, customisasinya juga bermacam-macam
+
+## tab_style
+
+Untuk mengganti jenis tampilan tabel berdasarkan kolom yang dipilih
+
+Contoh dibawah mengganti label header
+
+```{r}
+data_summary_2020 %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  )
+```
+
+## fmt_missing
+
+Mengganti angka NA dengan yang lain
+
+```{r}
+data_summary_2020_print <- data_summary_2020
+
+data_summary_2020_print[data_summary_2020_print == 0] <- NA
+```
+
+```{r}
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-")
+```
+
+## tab_options
+
+Hampir sama dengan tab_style dan theme mengganti tampilan2 dari tabel
+
+```{r}
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-") %>% 
+    tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    )
+```
+
+## cols_width
+
+Mengganti lebar kolom
+
+```{r}
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-") %>% 
+  tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    ) %>% 
+  cols_width(1 ~ px(2000)) %>% 
+  cols_width(2:(ncol(data_summary_2020)-1) ~ px(200)) 
+  
+```
+
+Hasilnya dari lebar kolom akan terlihat saat disimpan dalam bentuk .png
+
+## tab_spanner
+
+Memberi label diatas header
+
+```{r}
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-") %>% 
+  tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    ) %>% 
+  cols_width(1 ~ px(2000)) %>% 
+  cols_width(2:(ncol(data_summary_2020)-1) ~ px(200)) %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Bulan (kg)",
+    columns = c(2:(ncol(data_summary_2020)-1))
+  )
+```
+
+## data_color
+
+Untuk memberi warna kolom berdasarkan besaran pada kolom tersebut
+
+```{r}
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-") %>% 
+  tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    ) %>% 
+  cols_width(1 ~ px(2000)) %>% 
+  cols_width(2:(ncol(data_summary_2020)-1) ~ px(200)) %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Bulan (kg)",
+    columns = c(2:(ncol(data_summary_2020)-1))
+  ) %>% 
+  data_color(
+    columns = ncol(data_summary_2020_print), 
+    colors = scales::col_numeric(
+      palette = paletteer::paletteer_d(
+        palette = "ggsci::green_material"
+      ) %>% as.character(),
+      domain = NULL
+    )
+  )
+```
+
+
+## Menyimpan GT
+
+Kalau dalam ggplot kita menyimpan file dengan ggsave, pada gt menjadi `gtsave()` dengan cara pemakaian yang sama dengan ggsave()
+
+Pertama kita harus menyimpan dalam variable terlebih dahulu, baru dimasukkan sebagai argumen pada gtsave()
+
+```{r}
+tabel_summary_2020 <-
+data_summary_2020_print %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(everything(), missing_text = "-") %>% 
+  tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    ) %>% 
+  cols_width(1 ~ px(2000)) %>% 
+  cols_width(2:(ncol(data_summary_2020)-1) ~ px(200)) %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Bulan (kg)",
+    columns = c(2:(ncol(data_summary_2020)-1))
+  )
+
+gtsave(tabel_summary_2020, filename = paste("Ini Hasil Tabelnya.png", sep = ""))
+```
+

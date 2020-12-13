@@ -1,0 +1,655 @@
+---
+title: 'Day 2 : Basic Data Wrangling'
+author: "Fahmi Rizaldi"
+date: "11/2/2020"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+Sebelum masuk ke Hands-On Data Wrangling, kita akan pelajari dulu
+fungsi-fungsi yang akan kita gunakan
+
+Pertama kita akan inisiasi library yang akan kita pakai.
+
+Install terlebih dahulu dengan `install.packages("nama_packages")` jika belum pernah menginstall sebelumnya
+
+```{r}
+rm(list = ls()) # Untuk menghapus data di global environment
+library(tidyverse)
+library(readxl) # Untuk membuka file excel
+library(writexl)
+library(lubridate)
+```
+
+# Membuka Data
+
+Pertama-tama, kita akan belajar cara membuka data untuk diolah di R. Ada 2 jenis data yang sering digunakan:
+
+-   Data Excel (.xlsx, .csv) = `read_excel()`
+
+Cara pemakaian:
+read_excel(path = "nama_file.xlsx", skip = jumlah_baris_untuk_dilewati)
+
+-   Data R (.rda) = `load()`
+
+Cara pemakaian:
+load("nama_file.rda")
+
+## Excel
+
+Contoh pemakaian `read_excel()`
+
+Kalau kita buka file `data_input.xlsx` secara manual, kita akan melihat bahwa baris pertama berisi nama Tabel dan baru pada baris kedua berisi nama2 kolomnya
+
+### Membuka Excel Dasar
+
+Apabila kita membuka file tanpa skip
+
+read_excel hanya akan membaca file yang hanya ada di working directory / "alamat" kita bekerja. Jadi pastikan working directory kita adalah directory / "Alamat" dimana "data_input.xlsx" berada. Kita dapat menggantinya dengan run code `setwd('alamat_file')`
+
+```{r}
+read_excel("data_input.xlsx")
+```
+
+Hasilnya adalah baris pertama menjadi nama kolomnya, dan nama-nama kolom menjadi data baris pertama pada data.frame
+
+### Dengan Skip
+
+Untuk menghindari hal tersebut, kita dapat menambah argument `skip = `
+
+```{r}
+read_excel("data_input.xlsx", skip = 1)
+```
+
+### Spesifik dengan Sheet tertentu
+
+Kalau ingin membuka sheet khusus, kita dapat menambah argument `sheet = nama_sheet`
+
+```{r}
+read_excel("data_input.xlsx", skip = 1, sheet = "data_dummy_2")
+```
+
+### Menyimpan Seluruh Sheet Secara Bersamaan
+
+Bagaimana kalau ingin membuka dan menyimpan seluruh sheet di file.xlsx tersebut?
+
+Secara default, tidak ada fungsi khusus untuk otomatis menyimpan semua sheet secara langsung, kita harus menggunakan membuat fungsi looping yang membuka masing2 sheet
+
+```{r}
+list_sheet <- excel_sheets("data_input.xlsx")
+
+for(i in list_sheet){
+  assign(i, read_excel("data_input.xlsx", sheet = i, skip = 1))
+}
+```
+
+Penjelasan Fungsi:
+
+-   `excel_sheets()` = membuat vektor yang berisi nama sheet dari file excel yang ingin dibuka
+
+-   `for(i in list_sheet)` = Looping per elemen dari list_sheet dan menyimpan variabelnya ke i. Contoh, Loop Ke-1, i = "nama_sheet". Loop ke-2, i = "nama_sheet_lagi"
+
+-   `read_xlsx("nama_file.xlsx", sheet = nama_sheet)` = membuka file excel berdasarkan nama sheetnya
+
+-   `assign()` = melakukan assign suatu nilai ke variabel input. Cara pemakaian `assign()`:
+
+-    assign(nama_variabel_yang_ingin_dikasih_nilai,
+            value_yang_ingin_dimasukkan)
+
+Kenapa kita tidak lgs saja kita meassign variabel cara biasa, misal `i = read_xlsx("data_2_sheet.xlsx", sheet = i)`? padahal kan i itu nama sheetnya?
+
+Karena dengan melakukan i = ..., bukannya menyimpan dataframe dengan nama dari isi variabel "i", kita menimpa nilai i yang sebelumnya nama sheet menjadi data.frame hasil dari `read_xlsx()`
+
+## Data R
+
+Contoh pemakaian `load()`
+
+```{r}
+# Membersihkan Environment untuk membuktikan bahwa data berhasil ke load
+rm(list=ls())
+```
+
+```{r}
+load("data_input.rda")
+```
+
+# Memilih Data
+
+Memilih / mengambil seluruh atau sebagian elemen / variabel di R dapat
+dilakukan dengan berbagai fungsi dengan kegunaannya masing-masing.
+Beberapa fungsi / operatornya antara lain
+
+-   Operator `$`
+
+-   `select()` dan `slice()`
+
+-   Indexing atau Slicing dengan `[]`
+
+-   `filter()`
+
+## Operator '$'
+
+Operator ini digunakan untuk memilih 1 buah kolom dalam data.frame
+berdasarkan nama kolomnya. Sering digunakan karena memiliki fitur auto
+complete
+
+Cara pemakaian:
+
+-   nama_data_frame$nama_kolom
+
+Contoh, kita hanya ingin memilih kolom kategori dari data.frame
+data_dummy
+
+```{r}
+data_dummy$kategori
+```
+
+## select()
+
+Kita juga dapat memilih lebih dari 1 kolom dengan fungsi `select()`
+
+Cara pemakaian:
+
+-   nama_data_frame %>% select(nama_kolom_1, nama_kolom_2, ...)
+
+Contoh, kita memilih kolom kategori dan nilai_pertama
+
+```{r}
+data_dummy %>%
+  select(kategori, nilai_kedua)
+```
+
+kalau diperhatikan, kita punya cara lain untuk memilih kolom kategori
+dan nilai_pertama dengan cara membuang nilai_kedua.
+
+Cara penggunaan: (hanya perlu menambahkan tanda '-' pada sebelum nama
+kolom yang ingin dibuang)
+
+-   nama_data_frame %>% select(-nama_kolom_1, -nama_kolom_2, ...)
+
+```{r}
+data_dummy %>% 
+  select(-nilai_pertama)
+```
+
+Selain namanya, kita juga bisa memilih kolom berdasarkan index/urutan
+kolomnya.
+
+Cara pemakaian:
+
+-   nama_data_frame %>% select(index_kolom_1, index_kolom_2)
+
+```{r}
+data_dummy %>% 
+  select(1,2) 
+```
+
+kita juga dapat memilih dalam bentuk range, 1 hingga 2
+
+```{r}
+data_dummy %>% 
+  select(c(1:2))
+```
+
+## slice()
+
+Selain memilih kolom, kita juga dapat memilih baris dengan fungsi
+slice(). Pemakaiannya sama dengan select(), namun hanya bisa index /
+urutan barisnya saja
+
+Contoh pertama ini adalah kita memilih baris pertama DAN ketiga
+
+```{r}
+data_dummy %>% 
+  slice(1,3)
+```
+
+sedangkan contoh selanjutnya memilih baris pertama HINGGA ketiga
+
+```{r}
+data_dummy %>% 
+  slice(c(1:3))
+```
+
+## Subsetting
+
+Selain dengan menggunakan fungsi select() dan slice(), kita jg dapat
+memakai operator ' [ ] ' untuk memilih baris dan kolom yang kita
+inginkan
+
+Cara pemakaian:
+
+-   nama_data_frame[index_baris, index_kolom]
+
+-   nama_data_frame$nama_kolom[index_baris]
+
+-   nama_data_frame[index_kolom]
+
+Contoh, kita memilih 3 baris pertama pada kolom kedua (nilai_pertama)
+
+Contoh ini memilih hanya dengan menggunakan indexing
+
+```{r}
+data_dummy[1:3,2]
+```
+
+Namun contoh selanjutnya, kita memilih dengan terlebih dahulu memilih nama kolomnya dengan operator '$', baru memilih barisnya
+
+```{r}
+data_dummy$nilai_pertama[1:3]
+```
+
+Bila bagian kolom / baris dikosongkan, secara otomatis program akan
+mengambil seluruh kolom pada data.frame tersebut
+
+```{r}
+data_dummy[,1:2]
+```
+
+## filter()
+
+Fungsi ini digunakan untuk memilih data berdasarkan kondisi tertentu
+
+Cara pemakaian:
+
+-   nama_data_frame %>% filter(kondisi_1, kondisi_2, ...)
+
+Contoh, kita akan memilih Kategori 'C' yang nilai_pertama nya lebih
+besar sama dengan 8
+
+```{r}
+data_dummy %>% 
+  filter(kategori == "C", nilai_pertama >= 8)
+```
+
+Fungsi Indexing dan Filter diatas bisa kita gabungkan menjadi satu
+perintah
+
+Misal, kita hanya memilih 6 baris pertama dan kolom kategori saja,
+kemudian kita filter yang kategorinya 'B'
+
+```{r}
+data_dummy %>% 
+  select(kategori) %>% 
+  slice(1:6) %>% 
+  filter(kategori == 'B')
+```
+
+# Handle NA
+
+Dalam pengolahan data, sering kali kita harus mengolah data NA untuk dapat kita gunakan dalam analisis.
+
+Ada 2 Opsi:
+
+-   Mengubah data NA menjadi suatu nilai tertentu, bisa 0 / rata2 / median / nilai lainnya
+
+-   Membuang baris data NA
+
+## replace_na dan is.na()
+
+Fungsi ini digunakan untuk mengubah NA menjadi suatu nilai yang kita inginkan
+
+Cara pemakaian
+nama_data_frame %>% 
+  replace_na(list(nama_kolom = value_pengganti_NA))
+
+```{r}
+data_na <- data.frame(x = c(1, 2, NA, 4, 7), 
+                      y = as.character(c("a", NA, "b", NA, "b")))
+
+data_na
+```
+
+Contoh 1 ; Mengganti NA di kolom x dengan 0 dan y dengan "unknown"
+
+```{r}
+data_na %>% 
+  replace_na(list(x = 0, y = "Unknown"))
+```
+
+Contoh 2 : Mengganti NA di kolom x dengan Rata2
+
+```{r}
+data_na %>% 
+  replace_na(list(x = mean(.$x, na.rm = TRUE)))
+```
+
+Contoh 3 : Mengganti NA di y dengan 0
+
+```{r}
+data_na %>% 
+  replace_na(list(y = 0))
+```
+
+## drop_na()
+
+Jika ingin membuang, kita bisa membuang baris dengan data NA
+
+Contoh 4 : Buang baris dengan data NA
+
+```{r}
+data_na %>% 
+  drop_na()
+```
+
+Contoh 5 : Buang data NA pada kolom x
+
+```{r}
+data_na %>% 
+  drop_na(x)
+```
+
+# Pengelompokkan Data
+
+Seringkali kita ingin melakukan operasi matematis berdasarkan suatu kategori atau grup tertentu. Hal ini bisa dilakukan dengan 2 fungsi
+
+-   `group_by()` = Berfungsi untuk mengelompokkan variabel
+
+-   `summarise()` = Fungsi untuk menjalankan operasi yang diinginkan, misal `mean()`, `median()`, / `sum()`
+
+Cara permakaian :
+
+-   nama_data_frame %>% group_by(nama_kolom_1, ...) %>% summarise(nama_kolom_hasil = nama_fungsi_yang_ingin_dijalankan)
+
+Contoh, kita ingin mencari jumlah data, total nilai_pertama, rata2 nilai_pertama dari masing2 kategori (A, B, dan C)
+
+```{r}
+data_dummy %>% 
+  group_by(kategori) %>% 
+  summarise("jumlah_data" = n(),
+            "total_nilai_pertama" = sum(nilai_pertama),
+            "total_nilai_kedua" = sum(nilai_kedua),
+            "rata2_nilai" = mean(nilai_pertama)) %>% 
+  ungroup()
+```
+
+# Penambahan Data Baru
+
+Seringkali kita ingin menambah kolom baru atau baris baru ke data.frame yang ingin kita punya. Ada 2 fungsi yang umumnya kita gunakan
+
+-   `mutate()` = menambah kolom baru
+
+-   `rbind()` = menambah baris baru
+
+
+## mutate()
+
+Cara pemakaian:
+
+nama_data_frame %>% 
+  mutate("nama_kolom_baru" = isi_kolom)
+  
+rbind(nama_data_frame_yang_ingin_ditambahkan_datanya,
+      nama_data_frame_dengan_data_baru)
+      
+Misal, kita ingin membuat variabel `sum_n` yang merupakan penjumlahan dari nilai_pertama dan nilai_kedua
+
+```{r}
+data_dummy %>% 
+  mutate("sum_n" = nilai_pertama + nilai_kedua)
+```
+
+## mutate_at()
+
+ada juga bentuk lain dari mutate yaitu `mutate_at` digunakan untuk me-assign fungsi ke kolom2 secara bersamaan
+
+Cara pemakaian:
+nama_data_frame %>% 
+  mutate_at(vars(kolom_yang_ingin_diassign), funs(fungsi_yang_ingin_diassign(.)))
+  
+```{r}
+kali_seratus <- function(data){
+  data*100
+}
+data_dummy %>% 
+  mutate_at(vars(c(nilai_pertama, nilai_kedua)), funs(kali_seratus(.)))
+```
+
+## rowSums()
+
+Untuk melalukan penjumlahan lebih dari 1 kolom berdasarkan index kolomnya
+
+Cara pemakaian:
+nama_data_frame %>% 
+  mutate(
+    nama_kolom_baru = rowSums(.[index_kolom_yang_ingin_dijumlahkan])
+  )
+
+```{r}
+data_dummy %>% 
+  mutate(
+    nilai_ketiga = rowSums(.[2:3])
+  )
+```
+
+## rbind() 
+
+Contoh dari rbind()
+
+```{r}
+data_gabungan <- rbind(data_dummy, data_dummy_2)
+```
+
+# Pivot
+
+Kita juga dapat melakukan perubahan data dari bentuk `wide` ke bentuk `long`. Penjelasan ttg bentuk data tersebut dapat dilihat di 
+https://en.wikipedia.org/wiki/Wide_and_narrow_data
+https://sejdemyr.github.io/r-tutorials/basics/wide-and-long/
+
+Kenapa bentuk data harus diubah? Karena umumnya R membutuhkan data berbentuk `long` untuk input pada visualisasi nanti
+
+Pertama kita akan membuat data.frame bernama data_pivot dengan bentuk `wide`
+
+```{r}
+data_pivot <- data.frame(Bulan = c("Januari","Februari", "Maret", "April"),
+                         Organik  = c(1000,2000,300,4000),
+                         Anorganik = c(300,4500,2500,500),
+                         Residu = c(200,800,200,1000))
+
+data_pivot
+```
+
+Dari data awal `wide` yang kita miliki, kita akan mengubah menjadi bentuk `long` dengan `pivot_longer()`
+
+Cara pemakaian :
+nama_data_frame %>% 
+  pivot_longer(kolom_yang_ingin_dipanjangkan, names_to = "nama_kolom_kategori", values_to = "nama_kolom_values")
+
+```{r}
+data_long <- 
+data_pivot %>% 
+  pivot_longer(cols = c(2:4), names_to = "Kategori Sampah", values_to = "Jumlah Sampah Masuk (kg)")
+
+data_long
+```
+
+kalau kita ingin mengembalikan ke bentuk `wide` kita bisa gunakan `pivot_wider()`
+
+```{r}
+data_long %>% 
+  pivot_wider(names_from = `Kategori Sampah`,
+              values_from = `Jumlah Sampah Masuk (kg)`)
+```
+
+# Mengurutkan Data, Ganti Nama Kolom
+
+## arrange()
+
+Untuk mempermudah analisis, kita bisa mengurutkan tabel berdasarkan urutan terbesar atau terkecil. Kita dapat melakukan itu dengan menggunakan fungsi `arrange()`
+
+Cara pemakaian:
+nama_data_frame %>% 
+  arrange(nama_kolom_yang_ingin_diurutkan)
+  
+secara Default, `arrange()` akan mengurutkan dari value terkecil. Jika ingin mengurutkan secara descending, tinggal menambahkan tanda `-` di sebelum nama_kolom_yang_ingin_diurutkan
+
+Contoh, kita ingin melihat kategori sampah apa dan pada bulan apa yang Jumlah sampah masuknya paling banyak
+
+```{r}
+data_long %>% 
+  arrange(-`Jumlah Sampah Masuk (kg)`)
+```
+
+Jika kita ingin mengurutkan pada bulan apa masing2 kategori yang Jumlah sampahnya masuknya paling banyak, kita harus melakukan grouping pada Kategori Sampah nya terlebih dahulu
+
+Contoh
+
+```{r}
+data_long %>% 
+  group_by(`Kategori Sampah`) %>% 
+  arrange(`Jumlah Sampah Masuk (kg)`, .by_group = TRUE) %>%  # Ada tambahan argumen .by_group = TRUE biar pengurutannya sesuai dengan group_by() sebelumnya 
+  ungroup()
+```
+
+## rename()
+
+Jika kita lihat, sebenarnya nama kolom pada data.frame data_long tidak dinamakan dengan baik, apa saja alasannya?
+
+```{r}
+data_long
+```
+
+-   Terdapat spasi / whitespace ` `. Hal ini akan mempersulit pemanggilan variabel dimana kita harus menambahkan tanda petik berikut ` ` untuk memanggil variabel tersebut. Dalam beberapa kasus, variabel tersebut jadi tidak bisa dipanggil dengan autocomplete dan akan "merusak fungsi". Umumnya spasi/whitespace bisa diganti dengan underscore `_` atau titik `.`. Contoh `Kategori Sampah` -> `Kategori_Sampah`
+
+-   Terdapat huruf besar dan kecil pada namanya. Hal ini akan rawan dalam pemanggilan variabel karena R case-sensitive, sehingga salah case akan mengakibatkan variabel tidak terpanggil. Umumnya, user memberi nama dalam huruf kecil semua. Contoh `Kategori_Sampah` -> `kategori_sampah`
+
+Lebih lengkapnya, tata cara penamaan variabel atau nama kolom yang baik dapat dilihat pada:
+http://adv-r.had.co.nz/Style.html#:~:text=Variable%20and%20function%20names%20should,this%20is%20not%20easy!).
+https://www.datanovia.com/en/blog/r-coding-style-best-practices/
+
+Kita bisa mengganti nama dalam kolom dengan fungsi rename()
+
+Cara pemakaian:
+nama_data_frame %>% 
+  rename("nama_kolom_baru" = nama_kolom_yang_ingin_diganti)
+  
+Contoh
+
+```{r}
+data_long %>% 
+  rename("bulan" = Bulan,
+         "kategori_sampah" = `Kategori Sampah`,
+         "jumlah_sampah_masuk_(kg)" = `Jumlah Sampah Masuk (kg)`)
+```
+
+# Ubah Bentuk Data
+
+## as.??
+
+Mengubah jenis data (numeric, character, dll) dapat kita lakukan dengan menggunakan fungsi `as.jenis_data_yang_kita_inginkan()`
+
+Contoh, kita ingin mengubah nilai_pertama menjadi data berjenis factor
+
+Awalnya nilai_pertama berjenis numeric
+
+```{r}
+class(data_dummy$nilai_pertama)
+```
+
+Setelah kita ganti dengan as.factor
+
+```{r}
+data_dummy$nilai_pertama <- as.factor(data_dummy$nilai_pertama)
+class(data_dummy$nilai_pertama)
+```
+
+Kelas nilai_pertama menjadi factor
+
+Apabila ingin kita kembalikan menjadi numeric, kita tinggal memakan `as.numeric()`
+
+```{r}
+data_dummy$nilai_pertama <- as.numeric(data_dummy$nilai_pertama)
+class(data_dummy$nilai_pertama)
+```
+
+## as.Date
+
+Terkadang, saat meload data excel, data berupa tanggal bisa berubah menjadi angka berjenis character.
+
+Angka tersebut adalah Jumlah Hari dari tanggal 1899-12-30
+
+Kita dapat mengubahnya dengan cara berikut
+
+```{r}
+tanggal <- "43843" # Angka 1 Januari 2020
+
+tanggal %>% 
+  as.numeric() %>% 
+  as.Date(origin = "1899-12-30")
+```
+
+Format tanggalnya adalah "YYYY-mm-dd"
+
+## wday(), month(), year()
+
+Kita dapat mengambil nama hari, nama bulan, dan tahun dari sebuah tanggal 
+
+```{r}
+tanggal %>% 
+  as.numeric() %>% 
+  as.Date(origin = "1899-12-30") %>% 
+  wday(label = TRUE, abbr = FALSE)
+```
+
+Coba cek di kalender masing-masing, apakah benar tanggal 1 Januari 2020 itu hari Rabu?
+
+Dengan cara yang sama, kita bisa ambil nama bulannya
+
+```{r}
+tanggal %>% 
+  as.numeric() %>% 
+  as.Date(origin = "1899-12-30") %>% 
+  month(label = TRUE)
+```
+
+dan Tahun berapanya
+
+```{r}
+tanggal %>% 
+  as.numeric() %>% 
+  as.Date(origin = "1899-12-30") %>% 
+  year()
+```
+
+Sebelum lanjut, coba temen2 / kakak2 ganti argument dari wday(), month(), dan year() biar tau fungsinya bisa ngapain lagi! bisa cek ?wday, ?month, atau ?year buat cari tau bisa ubah apa aja ya!
+
+# Menyimpan File
+
+## Excel
+
+Untuk menyimpan ke dalam format .xlsx dapat menggunakan function `write_xlsx()`
+
+Cara pemakaian :
+write_xlsx(nama_data_frame, "nama_file.xlsx")
+
+File akan disimpan di working directory yang aktif saat ini
+
+```{r}
+write_xlsx(data_long, "data_long.xlsx")
+```
+
+Coba cek apakah di working directory nya sudah ada file excel bernama data_long.xlsx atau belum?
+
+untuk menyimpang lebih dari 1 data.frame menjadi sheet yang berbeda
+
+```{r}
+write_xlsx(list("nama_sheet" = data_long, "nama_sheet_lagi" = data_pivot), "data_2_sheet.xlsx")
+```
+
+## Data R
+
+Untuk menyimpan dalam bentuk .rda, kita bisa menggunakan `save()`
+
+Cara pemakaian :
+save(list = c(nama_data_1, nama_data_2,..) , file = "nama_file.rda")
+
+```{r}
+save(list = c("data_long", "data_na"), file = "file_output.rda")
+```
+
+```{r}
+load("file_output.rda")
+```
+

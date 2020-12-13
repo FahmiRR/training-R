@@ -1,0 +1,685 @@
+---
+title: 'Day 3 : Hands On Data Visualization'
+author: "Fahmi Rizaldi"
+date: "11/6/2020"
+output: html_document
+---
+
+Sekarang kita akan membuat visualisasi dari data yang sudah kita rapihkan pada Hands On Data Wrangling
+
+Visualisasi yang kita buat akan sesuai dengan visualisasi didraft bulanan
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(readxl)
+library(scales)
+library(lubridate)
+library(gt)
+```
+
+
+Pertama kita akan load dulu data yang mau kita buat
+
+```{r}
+Bulan <- "Oct"
+
+nama_rda <- paste("xxx",Bulan,".rda", sep = "")
+
+load(nama_rda)
+```
+
+# Tugas 1 -> Membuat Bar Chart Sampah Masuk Mingguan
+
+Berikut adalah tahapan untuk membuat barchart sampah masuk mingguan yang sama seperti pada draft memakai dataframe data_bulanan_weekly:
+
+-   Buat ggplot dengan sumbu x-nya adalah MINGGU KE sekian dalam bulan tersebut dan sumbu y-nya adalah TOTAL SAMPAH MASUK SEKOLA
+
+-   Dengan geom_col kita atur lebar bar 0.75 dengan warnanya #11b2de
+
+-   Pasang label angka TOTAL SAMPAH MASUK SEKOLA yang dibulatkan/rounding. Kemudian kita adjust vertikal sebesar -0.6
+
+-   Set batas bawah sumbu y = 0 dan batas atas y = 1.2 * nilai maksimum TOTAL SAMPAH MASUK SEKOLA
+
+-   Kita pasang theme_classic agar tampilannya "bersih" tanpa background apapun
+
+-   Kita atur beberapa visualisasinya dengan menghilangkan garis2 sumbu y, label sumbu y, label sumbu x 
+
+-   Didalam theme kita juga atur background dari panel dan plot menjadi transparent
+
+-   Set ukuran text pada sumbu x menjadi 12, dan judul plot menjadi 15 dimana pada plot kita juga atur posisi horizontal 0.5, dan tipenya "bold"
+
+-   Kemudian kita beri judul "Jumlah Sampah Masuk per Minggu (kg)"
+
+```{r}
+data_bulanan_weekly %>% 
+  ggplot(aes(x = `MINGGU KE`, y = `TOTAL SAMPAH MASUK SEKOLA`)) +
+  geom_col(width = 0.75, fill = "#11b2de") +
+  geom_text(aes(label = round(`TOTAL SAMPAH MASUK SEKOLA`), vjust = -0.6)) +
+  ylim(0, max(data_bulanan_weekly$`TOTAL SAMPAH MASUK SEKOLA`)*1.2) +
+  theme_classic() +
+  theme(
+    axis.line.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    axis.text.x = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5,
+                              size = 15,
+                              face = "bold"
+                              )
+  ) +
+  labs(
+    title = "Jumlah Sampah Masuk per Minggu (kg)"
+  )
+```
+
+
+# Tugas 2 -> Membuat Bar Chart Mingguan dengan Fungsi untuk Variabel `ORGANIK`, `TOTAL ANORGANIK DAUR ULANG` dan `RESIDU (HASIL PEMILAHAN)`
+
+Nah selanjutnya dengan cara yang sama kita akan membuat untuk variabel `ORGANIK`, `TOTAL ANORGANIK DAUR ULANG`, dan `RESIDU (HASIL PEMILAHAN)`
+
+Kalau kita perhatikan, untuk membuat plot untuk variabel lain, kita hanya perlu mengganti beberapa input saja:
+
+-   nama kolom yang kita pakai pada input `ggplot()`, `geom_text()`, dan `ylim` (agar axisnya bisa sesuai dengan nilai kolomnya)
+
+-   warna barchart pada `geom_col` (agar setiap variabel berbeda warnanya)
+
+-   judul plot pada `labs()`
+
+Sisanya, hanya pengaturan warna dan "visual" plot yang pada semua plot akan sama saja
+
+Maka, agar kode lebih mudah dibaca dan agar kita tidak perlu copy paste codenya panjang2, kita akan membuat fungsi yang otomatis melakukan plotting dan menyimpan plot tersebut
+
+Penjelasan fungsi sebagai berikut:
+
+-   Menerima input data.frame, nama kolom, judul plot, warna, width dan height dari plot saat disimpan. Dengan Warna, width, dan height diberikan default value agar kita bisa memilih ingin mengisi atau tidak
+
+-   Pertama kita cari tau dulu nilai maksimum dari masing2 kolom dengan rumus 1.2 * nilai maksimum
+
+-   Kemudian kita buat fungsi conditional dimana jika kita tinggal mengisi argumen `warna`, fungsinya akan secara otomatis memilih warna yang sama dengan palette di draft
+
+-   Kita kemudian membuat variabel filename agar hasil plotting dapat disimpan pada file `plot/nama_bulan/nama_bulan - judul_plot.png`
+
+-   Membuat variabel plot seperti pada TUGAS 1, dengan perbedaan:
+
+    -   Nama dataframe menjadi "data"
+    
+    -   Nama kolom menjadi "column"
+    
+    -   Isi fill menjadi "warna"
+    
+    -   Isi title menjadi "plot_title"
+    
+-   Tambahannya kita akan langsung menyimpan plot tersebut di lokasi "filename" dengan ukuran width dan height serta background "transparent"
+
+```{r}
+plot_sampah_masuk_mingguan <- 
+  function(data, column, plot_title, warna = NA, width = 6.25, height = 3.86){
+    
+    ylim_upper <-
+      max(data[, column]) * 1.2
+    
+    
+    if(is.na(warna) == FALSE){
+      warna <- warna
+    } else {
+      warna <- 
+      case_when(
+        column == "TOTAL SAMPAH MASUK SEKOLA" ~ "#11b2de",
+        column == "ORGANIK" ~ "#31a354",
+        column == "TOTAL ANORGANIK DAUR ULANG" ~ "#a1d99b",
+        column == "RESIDU (HASIL PEMILAHAN)" ~ "#e5f5e0",
+      )
+    }
+    
+    filename <- paste("plot/",Bulan,"/",Bulan, " - ", plot_title, ".png", sep = "")
+    
+    plot <-
+    data %>% 
+    ggplot(aes(x = `MINGGU KE`, y = get(column))) +
+    geom_col(width = 0.75, fill = warna) +
+    geom_text(aes(label = round(get(column)), vjust = -0.6)) +
+    ylim(0, ylim_upper) +
+    theme_classic() +
+    theme(
+      axis.line.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      axis.title.x = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      plot.background = element_rect(fill = "transparent", color = NA),
+      axis.text.x = element_text(size = 12),
+      plot.title = element_text(hjust = 0.5,
+                                size = 15,
+                                face = "bold"
+                                )
+    ) +
+    labs(
+      title = plot_title
+    )
+    
+    ggsave(plot ,filename = filename, width = width, height = height, units = "in", bg = "transparent")
+    
+    return(plot)
+  }
+```
+
+Setelah fungsinya jadi, Dengan menggunakan fungsi `plot_sampah_masuk_mingguan` dan data.frame data_bulanan_weekly sebagai inputnya, kita tinggal mengganti input argument `column =` dan `plot_title = `
+
+```{r}
+data_bulanan_weekly %>% plot_sampah_masuk_mingguan(column = "TOTAL SAMPAH MASUK SEKOLA",
+                                                   plot_title = "Jumlah Sampah Masuk per Minggu (kg)")
+
+data_bulanan_weekly %>% plot_sampah_masuk_mingguan(column = "ORGANIK",
+                                                   plot_title = "Jumlah Sampah Organik per Minggu (kg)")
+
+data_bulanan_weekly %>% plot_sampah_masuk_mingguan(column = "TOTAL ANORGANIK DAUR ULANG",
+                                                   plot_title = "Jumlah Sampah Anorganik per Minggu (kg)")
+
+data_bulanan_weekly %>% plot_sampah_masuk_mingguan(column = "RESIDU (HASIL PEMILAHAN)",
+                                                   plot_title = "Jumlah Sampah Residu per Minggu (kg)")
+```
+
+Sekarang apabila teman2 buka file plot -> Oct (di working directory masing2), teman2 akan melihat hasil plotting diatas dalam bentuk .png
+
+# Tugas 3 -> Membuat Line Chart perbedaan Jumlah Sampah Masuk dengan Minggu sebelumnya
+
+Berikut adalah tahapan untuk membuat Line Chart perbedaan Jumlah Sampah Masuk dengan Minggu sebelumnya seperti pada draft dengan menggunakan dataframe `data_bulanan_weekly_wow` :
+
+-   Buat ggplot dengan sumbu x-nya adalah MINGGU KE sekian dalam bulan tersebut dan sumbu y-nya adalah wow_total
+
+-   Buat geom_line dengan color #11b2de dan ukuran = 3 agar terlihat perbedaan ratenya dengan minggu sebelumnya
+
+-   Buat geom_point dengan color #11b2de dan ukuran = 4
+
+-   Pasang label besaran dari wow_total dengan simbol "%" dibelakangnya. Atur posisi vertikal nya sebesar -1
+
+-   Tambahkan garis horizontal putus2 di titik y = 0 agar terlihat pada minggu keberapa terjadi penurunan jumlah sampah masuk
+
+-   Pasang label "0" di garis horizontalnya di titik x = 1 dan y = 0 serta posisi vertikal -1
+
+-   Atur batas bawah ylim dengan nilai negatif dari absolut nilai maksimum kolom tersebut yang dikalikan 1.4 dan batas atas ylim adalah nilai positifnya
+
+-   Atur batas bawah xlim dengan nilai 1 dan batas atasnya nilai 5 (karena hanya ada MINGGU ke 1 hingga 5)
+
+(langkah dibawah ini sama dengan Tugas 1)
+
+-   Kita pasang theme_classic agar tampilannya "bersih" tanpa background apapun
+
+-   Kita atur beberapa visualisasinya dengan menghilangkan garis2 sumbu y, label sumbu y, label sumbu x 
+
+-   Didalam theme kita juga atur background dari panel dan plot menjadi transparent
+
+-   Set ukuran text pada sumbu x menjadi 12, dan judul plot menjadi 15 dimana pada plot kita juga atur posisi horizontal 0.5, dan tipenya "bold"
+
+-   Kemudian kita beri judul "Perbandingan Sampah masuk dengan Minggu Sebelumnya"
+
+```{r}
+data_bulanan_weekly_wow %>% 
+  ggplot(aes(x = `MINGGU KE`, y = wow_total, group = 1)) +
+  geom_line(color = "#11b2de", size = 3) +
+  geom_point(color = "#11b2de", size = 4) +
+  geom_text(aes(label = paste(wow_total,"%")), vjust = -1) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_text(aes(x = 1, y = 0,label = "0", vjust = -1)) +
+  ylim(-max(abs(data_bulanan_weekly_wow$wow_total), na.rm = TRUE)*1.4,
+       max(abs(data_bulanan_weekly_wow$wow_total), na.rm = TRUE)*1.4) +
+  xlim(1,5) +
+  theme_classic() +
+  theme(
+    axis.line.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    axis.text.x = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5,
+                              size = 15,
+                              face = "bold"
+                              )
+  ) +
+  labs(
+    title = "Perbandingan Sampah Masuk dengan Minggu Sebelumnya"
+  )
+```
+
+# Tugas 4 -> Membuat Line Chart dari Tugas 3 ke Variabel Organik, Anorganik, dan Residu
+
+Sama seperti tugas ke 2. Kita akan membuat fungsi untuk membuat plot linechart dari variabel yang kita inginkan
+
+Penjelasan fungsi sebagai berikut: (mirip dengan Tugas 2):
+
+-   Menerima input data.frame, nama kolom, judul plot, warna, width dan height dari plot saat disimpan. Dengan Warna, width, dan height diberikan default value agar kita bisa memilih ingin mengisi atau tidak
+
+-   Pertama kita cari tau dulu nilai maksimum dari masing2 kolom dengan rumus 1.4 * nilai maksimum dari nilai absolut kolom tersebut
+
+-   Kemudian kita buat fungsi conditional dimana jika kita tinggal mengisi argumen `warna`, fungsinya akan secara otomatis memilih warna yang sama dengan palette di draft
+
+-   Kita kemudian membuat variabel filename agar hasil plotting dapat disimpan pada file `plot/nama_bulan/nama_bulan - judul_plot.png`
+
+-   Membuat variabel plot seperti pada TUGAS 1, dengan perbedaan:
+
+    -   Nama dataframe menjadi "data"
+    
+    -   Nama kolom menjadi "column"
+    
+    -   Isi fill menjadi "warna"
+    
+    -   Isi title menjadi "plot_title"
+    
+-   Tambahannya kita akan langsung menyimpan plot tersebut di lokasi "filename" dengan ukuran width dan height serta background "transparent"
+
+```{r}
+plot_sampah_wow <- function(data, column, plot_title, warna = NA, width = 6.3, height = 3.86){
+    ylim <-
+      max(abs(data[, column]), na.rm = TRUE) * 1.4
+    
+    
+    if(is.na(warna) == FALSE){
+      warna <- warna
+    } else {
+      warna <- 
+      case_when(
+        column == "wow_total" ~ "#11b2de",
+        column == "wow_organik" ~ "#31a354",
+        column == "wow_anorganik" ~ "#a1d99b",
+        column == "wow_residu" ~ "#e5f5e0",
+      )
+    }
+    
+    filename <- paste("plot/",Bulan,"/",Bulan, " - ", plot_title, ".png", sep = "")
+    
+    plot <-
+    data %>% 
+      ggplot(aes(x = `MINGGU KE`, y = get(column), group = 1)) +
+      geom_line(color = warna, size = 3) +
+      geom_point(color = warna, size = 4) +
+      geom_text(aes(label = paste(get(column),"%")), vjust = -1) +
+      geom_hline(yintercept = 0, linetype = "dashed") +
+      geom_text(aes(x = 1, y = 0,label = "0", vjust = -1)) +
+      ylim(-ylim,ylim) +
+      xlim(1,5) +
+      theme_classic() +
+      theme(
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        axis.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 15,
+                                  face = "bold"
+                                  )
+      ) +
+      labs(
+        title = plot_title
+      ) 
+    
+    ggsave(plot ,filename = filename, width = width, height = height, units = "in", bg = "transparent")
+    
+    return(plot)
+}
+```
+
+Fungsi kemudian dijalankan ke masing2 wow yang kita inginkan
+
+```{r}
+data_bulanan_weekly_wow %>% plot_sampah_wow(column = "wow_total",
+                                            plot_title = "Perbandingan Sampah Masuk dengan Minggu Sebelumnya")
+
+data_bulanan_weekly_wow %>% plot_sampah_wow(column = "wow_organik",
+                                            plot_title = "Perbandingan Sampah Organik dengan Minggu Sebelumnya")
+
+data_bulanan_weekly_wow %>% plot_sampah_wow(column = "wow_anorganik",
+                                            plot_title = "Perbandingan Sampah Anorganik dengan Minggu Sebelumnya")
+
+data_bulanan_weekly_wow %>% plot_sampah_wow(column = "wow_residu",
+                                            plot_title = "Perbandingan Sampah Residu dengan Minggu Sebelumnya")
+```
+
+Hasilnya dapat dilihat di file plot -> Oct.
+
+# Tugas 5 -> Membuat Barchart Proporsi Sampah Masuk Pemilahan atau Tidak Tiap Minggu
+
+Berikut adalah tahapan membuat barchartnya dari dataframe data_proporsi_pemilahan_weekly:
+
+-   Buat ggplot dengan sumbu x-nya adalah MINGGU KE sekian dalam bulan tersebut dan sumbu y-nya adalah Proporsi dan Fillnya adalah Kategori
+
+-   Buat geom_col dengan lebar 0.75
+
+-   Pasang label besaran dari Proporsi dengan simbol "%" dibelakangnya. Gunakan position_stack dengan posisi vertikal 0.5
+
+-   Gunakan scale_fill_brewer dengan palette Oranges
+
+-   Atur batas atas ylim menjadi 110
+
+(langkah dibawah ini sama dengan Tugas 1 dengan sedikit perbedaan)
+
+-   Kita pasang theme_classic agar tampilannya "bersih" tanpa background apapun
+
+-   Kita atur beberapa visualisasinya dengan menghilangkan garis2 sumbu y, label sumbu y, label sumbu x 
+
+-   Atur Posisi legend dibagian bawah plot
+
+-   Didalam theme kita juga atur background dari panel dan plot menjadi transparent
+
+-   Set ukuran text pada sumbu x menjadi 12, dan judul plot menjadi 15 dimana pada plot kita juga atur posisi horizontal 0.5, dan tipenya "bold"
+
+-   Kemudian kita beri judul "Perbandingan Sampah masuk dengan Minggu Sebelumnya"
+
+```{r}
+data_proporsi_pemilahan_weekly %>% 
+  ggplot(aes(x = `MINGGU KE`, y = Proporsi, fill = Kategori)) +
+  geom_col(width = 0.75) +
+  geom_text(aes(label = paste(Proporsi,"%", sep = "")), position = position_stack(vjust = 0.5)) +
+  scale_fill_brewer(palette = "Oranges") +
+  ylim(0,110) +
+  theme_classic() +
+  theme(
+    legend.position = "bottom",
+    axis.line.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    axis.text.x = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5,
+                              size = 15,
+                              face = "bold"
+                              ),
+    legend.title = element_blank()
+  ) +
+  labs(
+    title = "Proporsi Masuk Pemilahan atau Tidak tiap Minggu"
+  ) +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+# Tugas 6 -> Membuat Barchart Proporsi seperti pada Tugas 5 namun untuk Jenis Pemilahannya
+
+Sama seperti Tugas 2 dan 4 namun dengan sedikit perbedaan:
+
+-   Tidak memilih kolom karena kita memakai dataframe yang berbeda
+
+-   Tidak perlu mencari batas limit nya terlebih dahulu
+
+-   Tidak ada input warna lagi, warna akan langsung dipilih berdasarkan dataframe yang dipakai dengan melihat jumlah barisnya
+
+```{r}
+plot_proporsi_weekly <- function(data, plot_title, width = 6.65, height = 4.55){
+    
+    if(nrow(data) == 10){
+      palette = "Oranges"
+    } else if(nrow(data) == 15) {
+      palette = "Greens"
+    }
+    
+  filename <- paste("plot/",Bulan,"/",Bulan, " - ", plot_title, ".png", sep = "")
+  
+  plot <-
+    data %>% 
+      ggplot(aes(x = `MINGGU KE`, y = Proporsi, fill = Kategori)) +
+      geom_col(width = 0.75) +
+      geom_text(aes(label = paste(Proporsi,"%", sep = "")), position = position_stack(vjust = 0.5)) +
+      scale_fill_brewer(palette = palette) +
+      theme_classic() +
+      ylim(0,110) +
+      theme(
+        legend.position = "bottom",
+        axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        axis.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 15,
+                                  face = "bold"
+                                  ),
+        legend.title = element_blank()
+      ) +
+      labs(
+        title = plot_title
+      ) +
+      guides(fill = guide_legend(reverse = TRUE))
+    
+    ggsave(plot ,filename = filename, width = width, height = height, units = "in", bg = "transparent")
+    
+    return(plot)
+}
+```
+
+Berbeda dari sebelumnya, inputnya adalah dataframe yang berbeda dan tidak perlu memilih lagi kolomnya
+
+```{r}
+data_proporsi_jenis_weekly %>% plot_proporsi_weekly(plot_title = "Proporsi Masuk Pemilahan atau Tidak tiap Minggu")
+
+data_proporsi_pemilahan_weekly %>% plot_proporsi_weekly(plot_title = "Proporsi Kategori Sampah Masuk Pemilahan tiap Minggu")
+```
+
+# Tugas 7 -> Membuat 3 Pie Chart; Masuk Tidak Masuk Pemilahan, Kategori Sampah Masuk Pemilahan, dan Asal Sampah pemilahan
+
+Pada tugas ini kita akan langsung membuat fungsinya ya.
+
+Berikut adalah Tahapan menggunakan dataframe data_piechart:
+
+-   Buat ggplot dengan sumbu x nya adalah "" (dikosongkan) dan sumbu y adalah Proporsi dengan fillnya adalah Kategori
+
+-   Menggunakan geom_bar (mempunyai fungsi yang hampir sama dengan geom_col) dengan input argument `stat = "identity"`, lebar = 1 dan warnanya putih
+
+-   Gunakan fungsi coord_polar("y") -> Fungsi ini digunakan untuk mengubah dari kordinat x dan y ke kordinat polar
+
+-   Gunakan fungsi scale_fill_manual dengan values = values, dan breaks = breaks -> value untuk me-assign warna ke tiap2 kategori dan breaks untuk mengatur urutan kategori di legendanya
+
+-   Pasang label dengan input aes `y = ypos` dan labelnya adalah Proposi dengan simbol "%" dibelakangnya. Atur colornya berwarna hitam, dan ukurannya sebesar 5. Kita menggunakan position_dodge dengan width sebesar -0.2 agar label tidak bertumpukkan (width untuk mengatur jarak antar label)
+
+(Pengaturan sisanya sama seperti pada tugas2 sebelumnya)
+
+```{r}
+plot_piechart <- function(data, plot_title, width = 5.37, height = 2.72){
+  values = c("Organik" = "#31a354",
+             "Anorganik" = "#a1d99b",
+             "Residu" = "#e5f5e0",
+             "Tidak Masuk" = "#FDAE6B",
+             "Masuk" = "#FEE6CE",
+             "Pulau Merah" = "#FA8128",
+             "Pancer" = "#BE5504",
+             "TPI Pancer" = "#FDA172",
+             "Pasar Desa" = "#EC9706")
+  
+  breaks = c("Organik", "Anorganik", "Residu", 
+             "Masuk", "Tidak Masuk",
+             "Pulau Merah", "Pancer", "TPI Pancer", "Pasar Desa")
+  
+  filename <- paste("plot/",Bulan,"/",Bulan, " - ", plot_title, ".png", sep = "")
+  
+  plot <-
+  data %>% 
+    ggplot(aes(x="", y=Proporsi, fill=Kategori)) +
+      geom_bar(stat="identity", width=1, color="white") +
+      coord_polar("y") +
+      scale_fill_manual(values = values,
+                        breaks = breaks) +
+      geom_text(aes(y = ypos, label = paste(Proporsi,"%", sep = "")), color = "black", size=5, position = position_dodge(width = -0.2)) +
+      theme_classic() +
+      theme(
+        legend.position = "bottom",
+        axis.line.y = element_blank(),
+        axis.line.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 16,
+                                  face = "bold"
+                                  ),
+        legend.background = element_rect(fill = "transparent"),
+        legend.text = element_text(size = 12),
+        legend.title = element_blank(),
+      ) +
+      labs(
+        title = plot_title
+      )
+  
+    ggsave(plot ,filename = filename, width = width, height = height, units = "in", bg = "transparent")
+    
+    return(plot)
+}
+```
+
+Jalankan fungsinya ke masing2 dataframe piechart
+
+```{r}
+data_piechart_kategori_pemilahan %>% plot_piechart(plot_title = "Masuk dan Tidak Masuk Pemilahan")
+
+data_piechart_jenis_sampah_pemilahan %>% plot_piechart(plot_title = "Kategori Sampah Masuk Pemilahan")
+
+data_piechart_asal_sampah_pemilahan %>% plot_piechart(plot_title = "Asal Sampah Masuk Pemilahan")
+```
+
+# Tugas 8 -> Membuat Tabel Summary
+
+Berikut adalah tahapan membuat tabel summary untuk data_anorganik:
+
+-   Pasang fungsi gt tanpa input apapun
+
+-   Atur tab_style, fmt_missing, dan tab_options seperti pada Basic Visualization
+
+-   Beri label tab_spanner "Jumlah Sampah Masuk per Minggu (kg)" dari kolom minggu ke 1 hingga 5
+
+-   Pada kolom proporsi, beri warna hijau
+
+```{r}
+data_anorganik %>% 
+  gt() %>% 
+  tab_style(
+    style = cell_text(color = "black", weight = "bold"),
+    locations = list(
+      cells_column_labels(everything())
+    )
+  ) %>%  
+  fmt_missing(columns = everything(), missing_text = "-") %>% 
+  tab_options(
+    row_group.border.top.width = px(3),
+    row_group.border.top.color = "black",
+    row_group.border.bottom.color = "black",
+    table_body.hlines.color = "white",
+    table.border.top.color = "white",
+    table.border.top.width = px(3),
+    table.border.bottom.color = "white",
+    table.border.bottom.width = px(3),
+    column_labels.border.bottom.color = "black",
+    column_labels.border.bottom.width = px(2),
+  ) %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Minggu (kg)",
+    columns = c(2:(ncol(data_anorganik)-2))
+  ) %>% 
+  data_color(
+    columns = ncol(data_anorganik), 
+    colors = scales::col_numeric(
+      palette = paletteer::paletteer_d(
+        palette = "ggsci::green_material"
+      ) %>% as.character(),
+      domain = NULL
+    )
+  )
+```
+
+Untuk fungsi membuat tabel, kita hanya akan membuat fungsinya dari gt() hingga tab_options() saja, Fungsi-fungsi selanjutnya disesuaikan dengan masing2 data frame
+
+```{r}
+bikin_tabel <- function(data){
+  data %>% 
+    gt() %>% 
+    tab_style(
+      style = cell_text(color = "black", weight = "bold"),
+      locations = list(
+        cells_column_labels(everything())
+      )
+    ) %>%  
+    fmt_missing(columns = everything(), missing_text = "-") %>% 
+    tab_options(
+      row_group.border.top.width = px(3),
+      row_group.border.top.color = "black",
+      row_group.border.bottom.color = "black",
+      table_body.hlines.color = "white",
+      table.border.top.color = "white",
+      table.border.top.width = px(3),
+      table.border.bottom.color = "white",
+      table.border.bottom.width = px(3),
+      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = px(2),
+    )
+}
+```
+
+
+Untuk tabel anorganik sama seperti sebelumnya,
+
+Pada tabel_summary_2020, kita ganti dulu nilai 0 dengan NA dan simpan di variabel data_summary_2020_print. Hal ini dilakukan untuk agar data_summary_2020 masih dapat kita gunakan dalam perhitungan di kemudian hari.
+
+pada tabel summary kita akan mengatur beberapa hal:
+
+-   Lebar kolom pertama sebesar 2000px
+
+-   Lebar kolom ke 2 hingga kolom sebelum Total sebesar 200px
+
+-   Label tab_spanner diberikan pada kolom Januari hingga Oktober dengan label "Jumlah Sampah Masuk per Bulan (kg)"
+
+```{r}
+tabel_anorganik <-
+data_anorganik %>% 
+  bikin_tabel() %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Minggu (kg)",
+    columns = c(2:(ncol(data_anorganik)-2))
+  ) %>% 
+  data_color(
+    columns = ncol(data_anorganik), 
+    colors = scales::col_numeric(
+      palette = paletteer::paletteer_d(
+        palette = "ggsci::green_material"
+      ) %>% as.character(),
+      domain = NULL
+    )
+  )
+
+data_summary_2020_print <- data_summary_2020
+
+data_summary_2020_print[data_summary_2020_print == 0] <- NA
+
+tabel_summary_2020 <- 
+data_summary_2020_print %>% 
+  bikin_tabel() %>% 
+  cols_width(1 ~ px(2000)) %>% 
+  cols_width(2:(ncol(data_summary_2020)-1) ~ px(200)) %>% 
+  tab_spanner(
+    label = "Jumlah Sampah Masuk per Bulan (kg)",
+    columns = c(2:(ncol(data_summary_2020)-1))
+  )
+  
+gtsave(tabel_anorganik, filename = paste("plot/",Bulan,"/",Bulan, " - Tabel Anorganik.png", sep = ""))
+
+gtsave(tabel_summary_2020, filename = paste("plot/",Bulan,"/",Bulan, " - Tabel Summary 2020.png", sep = ""))
+
+```
+
